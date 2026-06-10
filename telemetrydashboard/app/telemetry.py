@@ -115,28 +115,20 @@ async def fetch_service_metrics(service_name: str, base_url: str) -> Dict[str, A
         
         try:
             import httpx
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            # 60s timeout absorbs Render free-tier cold starts (~30-60s)
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 # Fetch health
                 health_response = await client.get(f"{base_url}/health")
                 health_data = health_response.json() if health_response.status_code == 200 else {}
-                
-                # Fetch stats if available
-                stats_data = {}
-                try:
-                    stats_response = await client.get(f"{base_url}/stats")
-                    if stats_response.status_code == 200:
-                        stats_data = stats_response.json()
-                except:
-                    pass
-                
+
                 span.set_status(Status(StatusCode.OK))
-                
+
                 return {
                     "service": service_name,
                     "url": base_url,
                     "status": "healthy" if health_response.status_code == 200 else "unhealthy",
                     "health": health_data,
-                    "stats": stats_data,
+                    "stats": {},
                     "timestamp": datetime.utcnow().isoformat()
                 }
         except Exception as e:

@@ -11,12 +11,11 @@ from .telemetry import (
     tracer, meter, log_storage, metric_storage,
     collect_all_metrics, log_event, request_counter, request_duration
 )
+from .otlp_receiver import router as otlp_router
 
 app = FastAPI(title="Telemetry Dashboard", version="1.0.0")
 
 frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
-if os.path.isdir(frontend_dist):
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
 # CORS
 app.add_middleware(
@@ -26,6 +25,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(otlp_router)
 
 # Request timing middleware
 @app.middleware("http")
@@ -141,7 +142,7 @@ async def metrics_collector_task():
             await log_event("info", "Metrics collected successfully", "telemetry_dashboard")
         except Exception as e:
             await log_event("error", f"Failed to collect metrics: {str(e)}", "telemetry_dashboard")
-        await asyncio.sleep(30)  # Collect every 30 seconds
+        await asyncio.sleep(60)  # Services push every 30s; poll for health once a minute
 
 @app.on_event("startup")
 async def startup():
@@ -151,6 +152,10 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     await log_event("info", "Telemetry dashboard stopped", "telemetry_dashboard")
+
+# Mount static frontend LAST so /api/* and /v1/* routes match first
+if os.path.isdir(frontend_dist):
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn
