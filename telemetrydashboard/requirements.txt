@@ -1,0 +1,15 @@
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+httpx==0.26.0
+pydantic==2.6.1
+pydantic-settings==2.1.0
+python-dotenv==1.0.1
+
+# OpenTelemetry
+opentelemetry-api==1.22.0
+opentelemetry-sdk==1.22.0
+opentelemetry-exporter-otlp==1.22.0
+opentelemetry-instrumentation-fastapi==0.43b0
+opentelemetry-instrumentation-httpx==0.43b0
+opentelemetry-instrumentation-logging==0.43b0
+opentelemetry-semantic-conventions==0.43b0
