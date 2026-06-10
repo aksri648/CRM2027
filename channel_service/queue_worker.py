@@ -62,13 +62,14 @@ class QueueWorker:
         channel = job.get("channel", "whatsapp")
         message = job.get("message")
         callback_url = job.get("callback_url")
+        external_id = job.get("external_id")
 
         # Wait random delay (1.0 - 4.0 seconds) — simulates network/carrier
         await asyncio.sleep(random.uniform(1.0, 4.0))
 
         # POST callback with "sent" event immediately
         if callback_url:
-            await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "sent")
+            await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "sent", external_id)
 
         # Determine primary outcome (delivered/failed) using channel weights
         delivery_rate = CHANNEL_DELIVERY_RATES.get(channel, 0.90)
@@ -77,42 +78,43 @@ class QueueWorker:
             # Delivered
             await asyncio.sleep(random.uniform(1.0, 4.0))
             if callback_url:
-                await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "delivered")
+                await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "delivered", external_id)
 
             # Engagement funnel
             if random.random() < P_OPENED_GIVEN_DELIVERED:
                 await asyncio.sleep(random.uniform(3.0, 10.0))
                 if callback_url:
-                    await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "opened")
+                    await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "opened", external_id)
 
                 if random.random() < P_READ_GIVEN_OPENED:
                     await asyncio.sleep(random.uniform(2.0, 6.0))
                     if callback_url:
-                        await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "read")
+                        await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "read", external_id)
 
                     if random.random() < P_CLICKED_GIVEN_READ:
                         await asyncio.sleep(random.uniform(1.0, 4.0))
                         if callback_url:
-                            await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "clicked")
+                            await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "clicked", external_id)
 
                         if random.random() < P_CONVERTED_GIVEN_CLICKED:
                             await asyncio.sleep(random.uniform(2.0, 8.0))
                             if callback_url:
-                                await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "converted")
+                                await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "converted", external_id)
         else:
-            # Failed
-            await asyncio.sleep(random.uniform(1.0, 4.0))
+            # Failed - use correct delay timing for failed messages
+            await asyncio.sleep(random.uniform(2.0, 6.0))
             if callback_url:
-                await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "failed")
+                await self._call_callback(callback_url, communication_id, campaign_id, customer_id, channel, "failed", external_id)
 
     async def _call_callback(
-        self, 
-        url: str, 
-        communication_id: str, 
-        campaign_id: str, 
-        customer_id: str, 
-        channel: str, 
+        self,
+        url: str,
+        communication_id: str,
+        campaign_id: str,
+        customer_id: str,
+        channel: str,
         event: str,
+        external_id: str = None,
         retries: int = 3
     ):
         """Call the CRM callback URL with retry logic"""
@@ -123,6 +125,7 @@ class QueueWorker:
                         url,
                         json={
                             "communication_id": communication_id,
+                            "external_id": external_id,
                             "campaign_id": campaign_id,
                             "customer_id": customer_id,
                             "channel": channel,

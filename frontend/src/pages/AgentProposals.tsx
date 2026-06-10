@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Check, X, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import api from '@/api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface Proposal {
   id: string
@@ -25,6 +26,9 @@ const channelColors: Record<string, string> = {
 }
 
 export default function AgentProposals() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -40,7 +44,7 @@ export default function AgentProposals() {
       setLoading(true)
       setError(false)
       const response = await api.get('/proposals')
-      setProposals(response.data)
+      setProposals(response.data.data || response.data || [])
     } catch (error) {
       console.error('Failed to load proposals:', error)
       setError(true)

@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { X, Send, Bot, Cpu, HardDrive, Activity } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import api from '@/api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface Message {
   id: string
@@ -23,6 +24,9 @@ interface AICommandCentreProps {
 }
 
 export default function AICommandCentre({ isOpen, onClose }: AICommandCentreProps) {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',

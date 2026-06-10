@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { RefreshCw, Activity, Package, Cog, Send, CheckCircle, Eye, MousePointer, DollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import api from '@/api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface PipelineStatus {
   active_campaigns: number
@@ -24,6 +25,9 @@ interface PipelineEvent {
 }
 
 export default function PipelineMonitor() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [status, setStatus] = useState<PipelineStatus | null>(null)
   const [events, setEvents] = useState<PipelineEvent[]>([])
   const [, setLoading] = useState(true)

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '@clerk/clerk-react'
 import { Users, Target, Send, TrendingUp, Rocket, Layers, BarChart3, Sparkles } from 'lucide-react'
-import api from '../api/client'
+import { createApi } from '@/api/client'
 
 interface Stats {
   total_customers: number
@@ -12,6 +13,9 @@ interface Stats {
 }
 
 export default function Dashboard() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [stats, setStats] = useState<Stats>({
     total_customers: 0,
     total_segments: 0,

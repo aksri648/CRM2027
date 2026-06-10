@@ -115,7 +115,7 @@ def get_channel_stats(
             sent=sent,
             delivery_rate=(delivered / sent * 100) if sent > 0 else 0,
             open_rate=(opened / delivered * 100) if delivered > 0 else 0,
-            click_rate=(clicked / opened * 100) if opened > 0 else 0,
+            click_rate=(clicked / delivered * 100) if delivered > 0 else 0,
             conversion=(converted / clicked * 100) if clicked > 0 else 0,
         ))
     
@@ -129,17 +129,36 @@ def get_top_campaigns(
     current_user: User = Depends(get_current_user)
 ):
     """Get top campaigns by revenue"""
-    campaigns = db.query(Campaign).limit(limit).all()
-    return [
-        CampaignStats(
+    from app.models import Order
+    
+    campaigns = db.query(Campaign).filter(
+        Campaign.brand_id == current_user.brand_id
+    ).limit(limit).all()
+    
+    result = []
+    for c in campaigns:
+        # Get real sent count from communications
+        sent = db.query(Communication).filter(
+            Communication.campaign_id == c.id,
+            Communication.status.in_(["sent", "delivered", "opened", "read", "clicked", "converted"])
+        ).count()
+        
+        # Calculate revenue from orders linked to this campaign's communications
+        revenue = db.query(func.coalesce(func.sum(Order.total), 0)).join(
+            Communication, Communication.customer_id == Order.customer_id
+        ).filter(
+            Communication.campaign_id == c.id
+        ).scalar() or 0
+        
+        result.append(CampaignStats(
             id=str(c.id),
             name=c.name,
             channel=c.channel,
-            sent=0,  # Would need to join with communications
-            revenue=0  # Would need to calculate from communications
-        )
-        for c in campaigns
-    ]
+            sent=sent,
+            revenue=float(revenue)
+        ))
+    
+    return result
 
 
 @router.get("/funnel", response_model=FunnelStats)

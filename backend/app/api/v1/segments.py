@@ -146,6 +146,22 @@ def create_segment(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Validate rules JSON before using it
+    try:
+        rules = json.loads(segment_data.rules)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid rules JSON format")
+    
+    # Validate rules structure
+    if not isinstance(rules, list):
+        raise HTTPException(status_code=400, detail="Rules must be a list")
+    
+    for rule in rules:
+        if not isinstance(rule, dict):
+            raise HTTPException(status_code=400, detail="Each rule must be an object")
+        if "field" not in rule or "operator" not in rule or "value" not in rule:
+            raise HTTPException(status_code=400, detail="Each rule must have field, operator, and value")
+    
     segment = Segment(
         brand_id=current_user.brand_id,
         **segment_data.model_dump()
@@ -153,8 +169,7 @@ def create_segment(
     db.add(segment)
     db.flush()
     
-    # Calculate customer count
-    rules = json.loads(segment_data.rules)
+    # Calculate customer count using validated rules
     customers = apply_segment_rules(db, current_user.brand_id, rules)
     segment.customer_count = len(customers)
     

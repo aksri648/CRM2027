@@ -36,23 +36,50 @@ def get_pipeline_status(
     current_user: User = Depends(get_current_user)
 ):
     """Get pipeline status"""
-    # Count active campaigns
-    active_campaigns = db.query(Campaign).filter(Campaign.status == "running").count()
+    # Count active campaigns for this brand
+    active_campaigns = db.query(Campaign).filter(
+        Campaign.brand_id == current_user.brand_id,
+        Campaign.status == "running"
+    ).count()
     
-    # Count queued communications
-    queue_depth = db.query(Communication).filter(Communication.status == "queued").count()
+    # Count queued communications for this brand
+    queue_depth = db.query(Communication).filter(
+        Communication.brand_id == current_user.brand_id,
+        Communication.status == "queued"
+    ).count()
     
-    # Count communications by status
-    total_sent = db.query(Communication).filter(Communication.status.in_(["sent", "delivered", "opened", "read", "clicked", "converted"])).count()
-    total_delivered = db.query(Communication).filter(Communication.status.in_(["delivered", "opened", "read", "clicked", "converted"])).count()
-    total_opened = db.query(Communication).filter(Communication.status.in_(["opened", "read", "clicked", "converted"])).count()
-    total_clicked = db.query(Communication).filter(Communication.status.in_(["clicked", "converted"])).count()
-    total_converted = db.query(Communication).filter(Communication.status == "converted").count()
+    # Count communications by status for this brand
+    total_sent = db.query(Communication).filter(
+        Communication.brand_id == current_user.brand_id,
+        Communication.status.in_(["sent", "delivered", "opened", "read", "clicked", "converted"])
+    ).count()
+    total_delivered = db.query(Communication).filter(
+        Communication.brand_id == current_user.brand_id,
+        Communication.status.in_(["delivered", "opened", "read", "clicked", "converted"])
+    ).count()
+    total_opened = db.query(Communication).filter(
+        Communication.brand_id == current_user.brand_id,
+        Communication.status.in_(["opened", "read", "clicked", "converted"])
+    ).count()
+    total_clicked = db.query(Communication).filter(
+        Communication.brand_id == current_user.brand_id,
+        Communication.status.in_(["clicked", "converted"])
+    ).count()
+    total_converted = db.query(Communication).filter(
+        Communication.brand_id == current_user.brand_id,
+        Communication.status == "converted"
+    ).count()
+    
+    # Count workers processing (communications with 'sending' status indicates active processing)
+    workers_processing = db.query(Communication).filter(
+        Communication.brand_id == current_user.brand_id,
+        Communication.status == "sending"
+    ).count()
     
     return PipelineStatus(
         active_campaigns=active_campaigns,
         queue_depth=queue_depth,
-        workers_processing=3,  # Mock value
+        workers_processing=workers_processing,
         total_sent=total_sent,
         total_delivered=total_delivered,
         total_opened=total_opened,
@@ -67,43 +94,37 @@ def get_pipeline_events(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get recent pipeline events"""
-    # Mock events for demo
-    events = [
-        PipelineEvent(
-            id="1",
-            timestamp="10:32:15 AM",
-            event_type="Campaign Dispatched",
-            description="Summer Sale → WhatsApp Queue",
-            status="event"
-        ),
-        PipelineEvent(
-            id="2",
-            timestamp="10:32:18 AM",
-            event_type="Worker Picked",
-            description="worker-03 processing message batch",
-            status="ok"
-        ),
-        PipelineEvent(
-            id="3",
-            timestamp="10:32:22 AM",
-            event_type="Message Sent",
-            description="Batch of 50 messages dispatched",
-            status="ok"
-        ),
-        PipelineEvent(
-            id="4",
-            timestamp="10:32:25 AM",
-            event_type="Delivery Confirmed",
-            description="47/50 messages delivered",
-            status="ok"
-        ),
-        PipelineEvent(
-            id="5",
-            timestamp="10:32:30 AM",
-            event_type="Retry Attempt",
-            description="3 messages retrying after timeout",
-            status="retry"
-        ),
-    ]
+    """Get recent pipeline events from communications"""
+    from datetime import datetime
+    
+    # Get recent communications with status changes
+    communications = db.query(Communication).filter(
+        Communication.brand_id == current_user.brand_id
+    ).order_by(Communication.updated_at.desc()).limit(limit).all()
+    
+    events = []
+    for comm in communications:
+        # Create events based on communication status
+        status_map = {
+            "queued": ("Queued", "event"),
+            "sending": ("Sending", "event"),
+            "sent": ("Sent", "ok"),
+            "delivered": ("Delivered", "ok"),
+            "opened": ("Opened", "ok"),
+            "read": ("Read", "ok"),
+            "clicked": ("Clicked", "ok"),
+            "converted": ("Converted", "ok"),
+            "failed": ("Failed", "error"),
+        }
+        
+        event_type, status = status_map.get(comm.status, ("Unknown", "event"))
+        
+        events.append(PipelineEvent(
+            id=str(comm.id),
+            timestamp=comm.updated_at.isoformat() if comm.updated_at else datetime.utcnow().isoformat(),
+            event_type=event_type,
+            description=f"Campaign {comm.campaign_id} - {comm.channel} to {comm.recipient[:20]}..." if comm.recipient else f"Campaign {comm.campaign_id}",
+            status=status
+        ))
+    
     return events

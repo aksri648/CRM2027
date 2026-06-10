@@ -2,11 +2,16 @@ from fastapi import FastAPI, HTTPException, Header, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+from os import getenv
 import asyncio
 import random
 import uuid
+import httpx
 
 app = FastAPI(title="Xeno Channel Service", version="1.0.0")
+
+# API key for callback authentication - should be set via environment variable
+CHANNEL_SERVICE_API_KEY = getenv("CHANNEL_SERVICE_API_KEY", "change-me-in-production")
 
 # In-memory storage for communications
 communications = {}
@@ -37,57 +42,53 @@ class StatusResponse(BaseModel):
     delivered_at: Optional[datetime] = None
 
 
-def simulate_delivery_outcome(channel_id: str, callback_url: Optional[str]):
+async def simulate_delivery_outcome(channel_id: str, callback_url: Optional[str]):
     """Simulate the async delivery and engagement flow"""
-    async def run_simulation():
-        await asyncio.sleep(random.uniform(1, 3))  # 1-3 seconds delay
-        
-        comm = communications.get(channel_id)
-        if not comm:
-            return
-        
-        # Mark as sent
-        comm["sent_at"] = datetime.utcnow()
-        comm["status"] = "sent"
-        
-        # Call back if URL provided
-        if callback_url:
-            await call_callback(callback_url, "sent")
-        
-        # Simulate delivery (90% success rate)
-        await asyncio.sleep(random.uniform(0.5, 2))
-        
-        if random.random() < 0.9:  # 90% delivered
-            comm["delivered_at"] = datetime.utcnow()
-            comm["status"] = "delivered"
-            if callback_url:
-                await call_callback(callback_url, "delivered")
-            
-            # Simulate open (60% of delivered)
-            if random.random() < 0.6:
-                await asyncio.sleep(random.uniform(1, 4))
-                comm["opened_at"] = datetime.utcnow()
-                if callback_url:
-                    await call_callback(callback_url, "opened")
-                
-                # Simulate click (30% of opened)
-                if random.random() < 0.3:
-                    await asyncio.sleep(random.uniform(0.5, 2))
-                    comm["clicked_at"] = datetime.utcnow()
-                    if callback_url:
-                        await call_callback(callback_url, "clicked")
-        else:
-            # Failed
-            comm["status"] = "failed"
-            if callback_url:
-                await call_callback(callback_url, "failed")
+    await asyncio.sleep(random.uniform(1, 3))  # 1-3 seconds delay
     
-    asyncio.create_task(run_simulation())
+    comm = communications.get(channel_id)
+    if not comm:
+        return
+    
+    # Mark as sent
+    comm["sent_at"] = datetime.utcnow()
+    comm["status"] = "sent"
+    
+    # Call back if URL provided
+    if callback_url:
+        await call_callback(callback_url, "sent")
+    
+    # Simulate delivery (90% success rate)
+    await asyncio.sleep(random.uniform(0.5, 2))
+    
+    if random.random() < 0.9:  # 90% delivered
+        comm["delivered_at"] = datetime.utcnow()
+        comm["status"] = "delivered"
+        if callback_url:
+            await call_callback(callback_url, "delivered")
+        
+        # Simulate open (60% of delivered)
+        if random.random() < 0.6:
+            await asyncio.sleep(random.uniform(1, 4))
+            comm["opened_at"] = datetime.utcnow()
+            if callback_url:
+                await call_callback(callback_url, "opened")
+            
+            # Simulate click (30% of opened)
+            if random.random() < 0.3:
+                await asyncio.sleep(random.uniform(0.5, 2))
+                comm["clicked_at"] = datetime.utcnow()
+                if callback_url:
+                    await call_callback(callback_url, "clicked")
+    else:
+        # Failed
+        comm["status"] = "failed"
+        if callback_url:
+            await call_callback(callback_url, "failed")
 
 
 async def call_callback(url: str, event_type: str):
     """Call the CRM callback URL"""
-    import httpx
     try:
         async with httpx.AsyncClient() as client:
             await client.post(
@@ -97,7 +98,7 @@ async def call_callback(url: str, event_type: str):
                     "metadata": None,
                     "occurred_at": datetime.utcnow().isoformat()
                 },
-                headers={"x-api-key": "channel-service-api-key"},
+                headers={"x-api-key": CHANNEL_SERVICE_API_KEY},
                 timeout=10.0
             )
     except Exception as e:

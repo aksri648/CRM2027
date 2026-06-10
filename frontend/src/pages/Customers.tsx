@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Search, Plus, Download, Upload, ChevronLeft, ChevronRight } from 'lucide-react'
-import api from '../api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface Customer {
   id: number
@@ -15,6 +16,9 @@ interface Customer {
 }
 
 export default function Customers() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')

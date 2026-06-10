@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Plus, Sparkles, Layers, Users } from 'lucide-react'
-import api from '../api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface Segment {
   id: number
@@ -13,6 +14,9 @@ interface Segment {
 }
 
 export default function Segments() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [segments, setSegments] = useState<Segment[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'ai' | 'manual'>('ai')

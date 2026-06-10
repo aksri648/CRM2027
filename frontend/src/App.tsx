@@ -22,7 +22,7 @@ const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_te
 
 function AppContent() {
   const [isAICommandCentreOpen, setIsAICommandCentreOpen] = useState(false)
-  const { isSignedIn, user } = useUser()
+  const { isSignedIn } = useUser()
 
   useEffect(() => {
     // Listen for AI Command Centre open event
@@ -34,32 +34,38 @@ function AppContent() {
   }, [])
 
   return (
-    <Routes>
-      <Route path="/login" element={
-        <SignedIn>
-          <Navigate to="/" replace />
-        </SignedIn>
-      } />
-      
-      <Route path="/" element={
-        <SignedIn>
-          <Layout />
-        </SignedIn>
-      }>
-        <Route index element={<Dashboard />} />
-        <Route path="customers" element={<Customers />} />
-        <Route path="segments" element={<Segments />} />
-        <Route path="campaigns" element={<Campaigns />} />
-        <Route path="campaigns/:id" element={<CampaignDetail />} />
-        <Route path="ai-studio" element={<AIStudio />} />
-        <Route path="opportunities" element={<Opportunities />} />
-        <Route path="proposals" element={<AgentProposals />} />
-        <Route path="ab-tests" element={<ABTests />} />
-        <Route path="analytics" element={<Analytics />} />
-        <Route path="pipeline" element={<PipelineMonitor />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/login" element={
+          <SignedIn>
+            <Navigate to="/" replace />
+          </SignedIn>
+        } />
+        
+        <Route path="/" element={
+          <SignedIn>
+            <Layout />
+          </SignedIn>
+        }>
+          <Route index element={<Dashboard />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="segments" element={<Segments />} />
+          <Route path="campaigns" element={<Campaigns />} />
+          <Route path="campaigns/:id" element={<CampaignDetail />} />
+          <Route path="ai-studio" element={<AIStudio />} />
+          <Route path="opportunities" element={<Opportunities />} />
+          <Route path="proposals" element={<AgentProposals />} />
+          <Route path="ab-tests" element={<ABTests />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="pipeline" element={<PipelineMonitor />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+      </Routes>
+      <AICommandCentre 
+        isOpen={isAICommandCentreOpen} 
+        onClose={() => setIsAICommandCentreOpen(false)} 
+      />
+    </>
   )
 }
 
@@ -72,10 +78,6 @@ function App() {
         </SignedOut>
         <SignedIn>
           <AppContent />
-          <AICommandCentre 
-            isOpen={false} 
-            onClose={() => {}} 
-          />
         </SignedIn>
       </BrowserRouter>
     </ClerkProvider>

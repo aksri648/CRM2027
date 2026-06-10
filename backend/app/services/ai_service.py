@@ -1,3 +1,4 @@
+import json
 from openai import OpenAI
 from app.core.config import settings
 from typing import Optional, List, Dict, Any
@@ -155,7 +156,5 @@ Return as JSON with keys: summary, strengths (array), improvements (array), reco
         except:
             return {"summary": "Could not analyze campaign performance"}
 
-
-import json
 
 ai_service = AIService()

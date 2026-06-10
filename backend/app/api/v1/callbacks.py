@@ -117,7 +117,7 @@ def handle_delivery_callback(
     _: bool = Depends(verify_api_key)
 ):
     """Handle delivery status callbacks"""
-    return handle_callback(request.metadata or "", request, db, _)
+    return handle_callback(request.external_id, request, db, _)
 
 
 @router.post("/engagement", response_model=CallbackResponse)
@@ -127,4 +127,4 @@ def handle_engagement_callback(
     _: bool = Depends(verify_api_key)
 ):
     """Handle engagement event callbacks"""
-    return handle_callback(request.metadata or "", request, db, _)
+    return handle_callback(request.external_id, request, db, _)

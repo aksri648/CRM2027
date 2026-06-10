@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Sparkles, Send, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import api from '@/api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface Message {
   id: string
@@ -45,6 +46,9 @@ const suggestions = [
 ]
 
 export default function AIStudio() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -75,33 +79,34 @@ export default function AIStudio() {
     setCurrentProposal(null)
 
     try {
-      // For demo, simulate AI response
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Call the real AI API to generate a campaign proposal
+      const response = await api.post('/ai/generate-proposal', {
+        prompt: messageText
+      })
+      
+      const { proposal, message } = response.data
       
       const assistantMessage: Message = {
         id: `assistant_${Date.now()}`,
         role: 'assistant',
-        content: `I've analyzed your request for "${messageText}" and created a campaign proposal. Here are the details:`,
+        content: message || `I've analyzed your request and created a campaign proposal. Here are the details:`,
         timestamp: new Date()
       }
       setMessages(prev => [...prev, assistantMessage])
 
-      // Show a campaign proposal
-      setCurrentProposal({
-        id: '1',
-        name: 'VIP Customer Summer Sale',
-        segment: {
-          id: 'seg_1',
-          name: 'VIP Customers',
-          description: 'Customers with LTV > 10000',
-          customer_count: 1250,
-          filter_rules: [{ field: 'ltv', op: '>', value: 10000 }]
-        },
-        channel: 'whatsapp',
-        message: 'Hey {name}! ☀️ Summer sale is here! Get 30% off on all items. Use code SUMMER30. Valid till 31st July.'
-      } as CampaignProposal)
+      // Show the campaign proposal from AI
+      if (proposal) {
+        setCurrentProposal(proposal)
+      }
     } catch (error) {
       console.error('Failed to send message:', error)
+      const errorMessage: Message = {
+        id: `error_${Date.now()}`,
+        role: 'assistant',
+        content: 'Sorry, I encountered an error generating your proposal. Please try again.',
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
     }
@@ -125,8 +130,7 @@ export default function AIStudio() {
         setCurrentProposal(null)
       } catch (error) {
         console.error('Failed to create campaign:', error)
-        alert('Campaign created! (Demo mode)')
-        setCurrentProposal(null)
+        alert('Failed to create campaign. Please try again.')
       }
     }
   }

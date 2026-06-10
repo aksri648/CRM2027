@@ -25,8 +25,8 @@ def list_ab_tests(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all A/B tests"""
-    tests = db.query(ABTest).all()
+    """List all A/B tests for this brand"""
+    tests = db.query(ABTest).filter(ABTest.brand_id == current_user.brand_id).all()
     return [test.to_dict() for test in tests]
 
 
@@ -40,6 +40,7 @@ def create_ab_test(
 ):
     """Create a new A/B test"""
     test = ABTest(
+        brand_id=current_user.brand_id,
         name=name,
         campaign_a_id=campaign_a_id,
         campaign_b_id=campaign_b_id,
@@ -57,7 +58,10 @@ def get_ab_test(
     current_user: User = Depends(get_current_user)
 ):
     """Get a specific A/B test"""
-    test = db.query(ABTest).filter(ABTest.id == test_id).first()
+    test = db.query(ABTest).filter(
+        ABTest.id == test_id,
+        ABTest.brand_id == current_user.brand_id
+    ).first()
     if not test:
         raise HTTPException(status_code=404, detail="A/B test not found")
     return test.to_dict()
@@ -71,7 +75,10 @@ def declare_winner(
     current_user: User = Depends(get_current_user)
 ):
     """Declare winner of an A/B test"""
-    test = db.query(ABTest).filter(ABTest.id == test_id).first()
+    test = db.query(ABTest).filter(
+        ABTest.id == test_id,
+        ABTest.brand_id == current_user.brand_id
+    ).first()
     if not test:
         raise HTTPException(status_code=404, detail="A/B test not found")
     

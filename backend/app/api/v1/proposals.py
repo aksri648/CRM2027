@@ -29,8 +29,8 @@ def list_proposals(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all proposals, optionally filtered by status"""
-    query = db.query(AgentProposal)
+    """List all proposals for this brand, optionally filtered by status"""
+    query = db.query(AgentProposal).filter(AgentProposal.brand_id == current_user.brand_id)
     if status:
         query = query.filter(AgentProposal.status == status)
     else:
@@ -47,7 +47,10 @@ def get_proposal(
     current_user: User = Depends(get_current_user)
 ):
     """Get a specific proposal"""
-    proposal = db.query(AgentProposal).filter(AgentProposal.id == proposal_id).first()
+    proposal = db.query(AgentProposal).filter(
+        AgentProposal.id == proposal_id,
+        AgentProposal.brand_id == current_user.brand_id
+    ).first()
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposal not found")
     return proposal.to_dict()
@@ -60,7 +63,10 @@ def approve_proposal(
     current_user: User = Depends(get_current_user)
 ):
     """Approve a proposal and launch campaign"""
-    proposal = db.query(AgentProposal).filter(AgentProposal.id == proposal_id).first()
+    proposal = db.query(AgentProposal).filter(
+        AgentProposal.id == proposal_id,
+        AgentProposal.brand_id == current_user.brand_id
+    ).first()
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposal not found")
     
@@ -77,7 +83,10 @@ def reject_proposal(
     current_user: User = Depends(get_current_user)
 ):
     """Reject a proposal"""
-    proposal = db.query(AgentProposal).filter(AgentProposal.id == proposal_id).first()
+    proposal = db.query(AgentProposal).filter(
+        AgentProposal.id == proposal_id,
+        AgentProposal.brand_id == current_user.brand_id
+    ).first()
     if not proposal:
         raise HTTPException(status_code=404, detail="Proposal not found")
     

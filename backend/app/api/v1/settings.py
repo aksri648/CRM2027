@@ -53,7 +53,7 @@ def update_settings(
         db.add(settings)
     
     # Update only provided fields
-    update_data = settings_data.dict(exclude_unset=True)
+    update_data = settings_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         if value is not None:
             setattr(settings, key, value)

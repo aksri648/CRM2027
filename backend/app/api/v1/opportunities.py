@@ -34,8 +34,9 @@ def list_opportunities(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all active opportunities"""
+    """List all active opportunities for this brand"""
     opportunities = db.query(Opportunity).filter(
+        Opportunity.brand_id == current_user.brand_id,
         Opportunity.status == OpportunityStatus.ACTIVE.value
     ).all()
     return [opp.to_dict() for opp in opportunities]
@@ -49,6 +50,7 @@ def create_opportunity(
 ):
     """Create a new opportunity"""
     opportunity = Opportunity(
+        brand_id=current_user.brand_id,
         title=opportunity_data.title,
         description=opportunity_data.description,
         audience_description=opportunity_data.audience_description,
@@ -79,7 +81,10 @@ def dismiss_opportunity(
     current_user: User = Depends(get_current_user)
 ):
     """Dismiss an opportunity"""
-    opportunity = db.query(Opportunity).filter(Opportunity.id == opportunity_id).first()
+    opportunity = db.query(Opportunity).filter(
+        Opportunity.id == opportunity_id,
+        Opportunity.brand_id == current_user.brand_id
+    ).first()
     if not opportunity:
         raise HTTPException(status_code=404, detail="Opportunity not found")
     
@@ -95,7 +100,10 @@ def generate_campaign_from_opportunity(
     current_user: User = Depends(get_current_user)
 ):
     """Generate a campaign proposal from an opportunity"""
-    opportunity = db.query(Opportunity).filter(Opportunity.id == opportunity_id).first()
+    opportunity = db.query(Opportunity).filter(
+        Opportunity.id == opportunity_id,
+        Opportunity.brand_id == current_user.brand_id
+    ).first()
     if not opportunity:
         raise HTTPException(status_code=404, detail="Opportunity not found")
     

@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Globe, Bell, Bot, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import api from '@/api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface AppSettings {
   platform_name: string
@@ -22,6 +23,9 @@ interface AppSettings {
 }
 
 export default function Settings() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [settings, setSettings] = useState<AppSettings>({
     platform_name: 'Xeno AI Campaign Studio',
     timezone: 'Asia/Kolkata',

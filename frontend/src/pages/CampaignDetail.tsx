@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Send } from 'lucide-react'
-import api from '../api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface Campaign {
   id: number
@@ -24,6 +25,9 @@ interface Campaign {
 }
 
 export default function CampaignDetail() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const { id } = useParams()
   const navigate = useNavigate()
   const [campaign, setCampaign] = useState<Campaign | null>(null)

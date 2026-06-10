@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import httpx
-from jose import JWTError, jwt
+import json
+from jose import JWTError, jwt, jwk
+from jose.exceptions import JWKError
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -12,29 +14,91 @@ from app.models.user import User
 # Clerk JWT verification
 clerk_jwt_bearer = HTTPBearer(auto_error=False)
 
+# Cache for JWKS keys
+_jwks_cache: Optional[dict] = None
+_jwks_cache_time: float = 0
+JWKS_CACHE_DURATION = 3600  # 1 hour
+
+
+async def get_clerk_jwks() -> dict:
+    """
+    Fetch and cache Clerk's JWKS (JSON Web Key Set) for token verification.
+    """
+    global _jwks_cache, _jwks_cache_time
+    import time
+    
+    # Return cached JWKS if still valid
+    if _jwks_cache and (time.time() - _jwks_cache_time) < JWKS_CACHE_DURATION:
+        return _jwks_cache
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(settings.CLERK_JWKS_URL, timeout=10.0)
+            response.raise_for_status()
+            _jwks_cache = response.json()
+            _jwks_cache_time = time.time()
+            return _jwks_cache
+    except Exception as e:
+        # If we have cached keys, use them even if expired
+        if _jwks_cache:
+            return _jwks_cache
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Failed to fetch Clerk JWKS: {str(e)}",
+        )
+
+
+def get_signing_key(token: str, jwks: dict) -> str:
+    """
+    Get the signing key from JWKS that matches the token's kid (key ID).
+    """
+    try:
+        unverified_header = jwt.get_unverified_header(token)
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token header",
+        )
+    
+    kid = unverified_header.get("kid")
+    if not kid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token missing key ID (kid)",
+        )
+    
+    for key in jwks.get("keys", []):
+        if key.get("kid") == kid:
+            return key
+    
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=f"Unable to find signing key for kid: {kid}",
+    )
+
 
 async def verify_clerk_token(token: str) -> dict:
     """
     Verify Clerk JWT token and return the payload.
-    For production, use Clerk's JWKS endpoint for verification.
+    Uses Clerk's JWKS endpoint for proper signature verification.
     """
     try:
-        # In production, fetch Clerk's JWKS and verify
-        # For now, decode without verification ( Clerk handles this on frontend)
-        # The backend trusts the frontend's Clerk session
+        # Fetch Clerk's JWKS
+        jwks = await get_clerk_jwks()
         
-        # Alternative: Use Clerk's API to verify
-        # async with httpx.AsyncClient() as client:
-        #     response = await client.get(
-        #         f"https://api.clerk.dev/v1/sessions/{session_id}/tokens/verify",
-        #         headers={"Authorization": f"Bearer {settings.CLERK_SECRET_KEY}"}
-        #     )
+        # Get the signing key that matches the token
+        signing_key = get_signing_key(token, jwks)
         
-        # Decode the JWT (in production, verify with Clerk's public key)
+        # Convert JWK to PEM format for verification
+        public_key = jwk.construct(signing_key).to_pem().decode('utf-8')
+        
+        # Decode and verify the JWT with Clerk's public key
         payload = jwt.decode(
-            token, 
-            options={"verify_signature": False},  # Clerk signs on frontend
-            algorithms=["RS256"]
+            token,
+            public_key,
+            algorithms=["RS256"],
+            audience=settings.CLERK_AUDIENCE,
+            issuer=settings.CLERK_ISSUER,
         )
         return payload
     except JWTError as e:

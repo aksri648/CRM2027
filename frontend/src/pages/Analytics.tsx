@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Send, CheckCircle, Eye, MousePointer, ShoppingCart, TrendingUp, Mail, MessageSquare, Share2 } from 'lucide-react'
-import api from '@/api/client'
+import { useState, useEffect, useMemo } from 'react'
+import { useAuth } from '@clerk/clerk-react'
+import { Send, CheckCircle, Eye, MousePointer, ShoppingCart, TrendingUp, Mail, MessageSquare, Share2, AlertCircle } from 'lucide-react'
+import { createApi } from '@/api/client'
 
 interface ChannelStats {
   channel: string
@@ -37,18 +38,25 @@ const channelConfig: Record<string, { icon: any; color: string; bg: string; bord
 type TabType = 'channel' | 'campaigns' | 'funnel'
 
 export default function Analytics() {
+  const { getToken } = useAuth()
   const [activeTab, setActiveTab] = useState<TabType>('channel')
   const [loading, setLoading] = useState(true)
   const [channelStats, setChannelStats] = useState<ChannelStats[]>([])
   const [topCampaigns, setTopCampaigns] = useState<CampaignStats[]>([])
   const [funnelData, setFunnelData] = useState<FunnelData>({ sent: 0, delivered: 0, opened: 0, clicked: 0, converted: 0 })
   const [overview, setOverview] = useState({ total_messages: 0, avg_delivery: 0, avg_open: 0, avg_conversion: 0 })
+  const [error, setError] = useState<string | null>(null)
+
+  // Create API instance with Clerk auth
+  const api = useMemo(() => createApi(getToken), [getToken])
 
   useEffect(() => {
     loadAnalytics()
   }, [])
 
   const loadAnalytics = async () => {
+    setLoading(true)
+    setError(null)
     try {
       const [overviewRes, channelsRes, campaignsRes, funnelRes] = await Promise.all([
         api.get('/analytics/overview'),
@@ -63,26 +71,7 @@ export default function Analytics() {
       setFunnelData(funnelRes.data)
     } catch (error) {
       console.error('Failed to load analytics:', error)
-      setOverview({
-        total_messages: 45678,
-        avg_delivery: 91.2,
-        avg_open: 45.8,
-        avg_conversion: 8.3
-      })
-      setChannelStats([
-        { channel: 'whatsapp', sent: 18500, delivery_rate: 94.2, open_rate: 78.3, click_rate: 24.1, conversion: 12.5 },
-        { channel: 'sms', sent: 12300, delivery_rate: 96.1, open_rate: 82.1, click_rate: 28.5, conversion: 15.2 },
-        { channel: 'email', sent: 9878, delivery_rate: 87.3, open_rate: 32.5, click_rate: 8.2, conversion: 3.1 },
-        { channel: 'rcs', sent: 5000, delivery_rate: 85.0, open_rate: 45.2, click_rate: 12.8, conversion: 4.5 }
-      ])
-      setTopCampaigns([
-        { id: '1', name: 'Summer Sale Campaign', channel: 'whatsapp', sent: 5420, revenue: 45678 },
-        { id: '2', name: 'VIP Reactivation', channel: 'sms', sent: 3200, revenue: 32450 },
-        { id: '3', name: 'New Arrivals Alert', channel: 'email', sent: 2800, revenue: 21340 },
-        { id: '4', name: 'Flash Sale', channel: 'whatsapp', sent: 2100, revenue: 18760 },
-        { id: '5', name: 'Monsoon Special', channel: 'rcs', sent: 1500, revenue: 12450 }
-      ])
-      setFunnelData({ sent: 45678, delivered: 41670, opened: 27056, clicked: 8652, converted: 1855 })
+      setError('Failed to load analytics data. Please try again later.')
     } finally {
       setLoading(false)
     }
@@ -186,6 +175,21 @@ export default function Analytics() {
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-4 border-[#0fd4b4] border-t-transparent rounded-full animate-spin" />
             <p className="text-sm text-gray-500">Loading analytics...</p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="p-3 rounded-full bg-red-50">
+              <AlertCircle className="w-8 h-8 text-red-500" />
+            </div>
+            <p className="text-sm text-gray-500">{error}</p>
+            <button
+              onClick={() => loadAnalytics()}
+              className="px-4 py-2 text-sm font-medium text-white bg-[#0fd4b4] rounded-lg hover:bg-[#0bc4a0] transition-colors"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       ) : (

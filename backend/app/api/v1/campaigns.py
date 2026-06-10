@@ -20,36 +20,41 @@ from app.schemas.campaign import (
 router = APIRouter(prefix="/campaigns", tags=["Campaigns"])
 
 
-async def send_to_channel_service(communications: list, campaign_id: int, brand_id: int):
+async def send_to_channel_service(communication_ids: list, campaign_id: int, brand_id: int):
     """Background task to send communications to channel service"""
+    from app.core.database import SessionLocal
+    
     async with httpx.AsyncClient() as client:
-        for comm in communications:
-            try:
-                response = await client.post(
-                    f"{settings.CHANNEL_SERVICE_URL}/send",
-                    json={
-                        "external_id": comm.external_id,
-                        "recipient": comm.recipient,
-                        "channel": comm.channel,
-                        "subject": comm.subject,
-                        "content": comm.content,
-                        "callback_url": f"{settings.CRM_CALLBACK_URL}/{comm.external_id}"
-                    },
-                    headers={"x-api-key": settings.CHANNEL_SERVICE_API_KEY},
-                    timeout=30.0
-                )
-                if response.status_code != 202:
-                    comm.status = CommunicationStatus.FAILED
-                else:
-                    comm.status = CommunicationStatus.SENT
-                    comm.sent_at = datetime.utcnow()
-            except Exception as e:
-                comm.status = CommunicationStatus.FAILED
-            
-            # We need a new session for each communication update
-            from app.core.database import SessionLocal
+        for comm_id in communication_ids:
+            # Re-query the communication with a fresh session
             db = SessionLocal()
             try:
+                comm = db.query(Communication).filter(Communication.id == comm_id).first()
+                if not comm:
+                    continue
+                    
+                try:
+                    response = await client.post(
+                        f"{settings.CHANNEL_SERVICE_URL}/send",
+                        json={
+                            "external_id": comm.external_id,
+                            "recipient": comm.recipient,
+                            "channel": comm.channel,
+                            "subject": comm.subject,
+                            "content": comm.content,
+                            "callback_url": f"{settings.CRM_CALLBACK_URL}/{comm.external_id}"
+                        },
+                        headers={"x-api-key": settings.CHANNEL_SERVICE_API_KEY},
+                        timeout=30.0
+                    )
+                    if response.status_code != 202:
+                        comm.status = CommunicationStatus.FAILED
+                    else:
+                        comm.status = CommunicationStatus.SENT
+                        comm.sent_at = datetime.utcnow()
+                except Exception as e:
+                    comm.status = CommunicationStatus.FAILED
+                
                 db.commit()
             finally:
                 db.close()
@@ -282,8 +287,9 @@ async def send_campaign(
     campaign.sent_count = len(communications)
     db.commit()
     
-    # Send to channel service in background
-    background_tasks.add_task(send_to_channel_service, communications, campaign.id, current_user.brand_id)
+    # Send to channel service in background (pass IDs to avoid detached objects)
+    communication_ids = [comm.id for comm in communications]
+    background_tasks.add_task(send_to_channel_service, communication_ids, campaign.id, current_user.brand_id)
     
     return {
         "message": "Campaign sending started",

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Lightbulb, Sparkles, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import api from '@/api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface Opportunity {
   id: string
@@ -16,6 +17,9 @@ interface Opportunity {
 }
 
 export default function Opportunities() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -28,7 +32,7 @@ export default function Opportunities() {
   const loadOpportunities = async () => {
     try {
       const response = await api.get('/opportunities')
-      setOpportunities(response.data)
+      setOpportunities(response.data.data || response.data || [])
     } catch (error) {
       console.error('Failed to load opportunities:', error)
       setOpportunities([])

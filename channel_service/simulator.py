@@ -44,6 +44,7 @@ class ChannelSimulator:
         "read": (2.0, 6.0),
         "clicked": (1.0, 4.0),
         "converted": (2.0, 8.0),
+        "failed": (2.0, 6.0),
     }
     
     def __init__(self):
@@ -125,7 +126,7 @@ class ChannelSimulator:
                             self.stats["outcomes"]["converted"] += 1
         else:
             # Failed
-            await self._wait_random("delivered")
+            await self._wait_random("failed")
             outcome.failed = True
             outcome.events.append({
                 "event": "failed",

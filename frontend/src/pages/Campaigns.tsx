@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Mail, MessageSquare, Share2, Send, CheckCircle, Clock, XCircle } from 'lucide-react'
-import api from '../api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface Campaign {
   id: number
@@ -33,6 +34,9 @@ const statusConfig: Record<string, { icon: any; color: string; bg: string }> = {
 }
 
 export default function Campaigns() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -43,7 +47,7 @@ export default function Campaigns() {
   const loadCampaigns = async () => {
     try {
       const response = await api.get('/campaigns')
-      setCampaigns(response.data.data)
+      setCampaigns(response.data.data || [])
     } catch (error) {
       console.error('Failed to load campaigns:', error)
     } finally {

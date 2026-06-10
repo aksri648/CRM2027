@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
+import { useUser } from '@clerk/clerk-react'
 import {
   LayoutDashboard,
   Sparkles,
@@ -28,8 +29,8 @@ interface NavItem {
 const mainNav: NavItem[] = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/ai-studio', label: 'AI Campaign Studio', icon: Sparkles, badge: 'New', badgeType: 'new' },
-  { path: '/opportunities', label: 'Opportunities', icon: Lightbulb, badge: 5, badgeType: 'count' },
-  { path: '/proposals', label: 'Agent Proposals', icon: FileText, badge: 3, badgeType: 'count' },
+  { path: '/opportunities', label: 'Opportunities', icon: Lightbulb },
+  { path: '/proposals', label: 'Agent Proposals', icon: FileText },
 ]
 
 const audienceNav: NavItem[] = [
@@ -53,11 +54,11 @@ const systemNav: NavItem[] = [
 ]
 
 export default function Layout() {
+  const { user } = useUser()
   const location = useLocation()
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    // App uses Clerk for authentication, no localStorage token to clear
     window.location.href = '/login'
   }
 
@@ -140,13 +141,13 @@ export default function Layout() {
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: 'var(--color-accent-teal)' }}>
-              A
+              {user?.firstName?.charAt(0) || user?.emailAddresses?.[0]?.emailAddress?.charAt(0) || 'U'}
             </div>
             <div className="flex-1">
-              <div className="text-white text-sm font-medium">Admin</div>
-              <div className="text-gray-400 text-xs">Admin</div>
+              <div className="text-white text-sm font-medium">{user?.fullName || 'User'}</div>
+              <div className="text-gray-400 text-xs">{user?.primaryEmailAddress?.emailAddress || ''}</div>
             </div>
-            <button 
+            <button
               onClick={handleLogout}
               className="text-gray-400 hover:text-white transition-colors"
               title="Logout"

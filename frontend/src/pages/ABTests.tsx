@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Sparkles, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import api from '@/api/client'
+import { useAuth } from '@clerk/clerk-react'
+import { createApi } from '@/api/client'
 
 interface ABTest {
   id: string
@@ -46,6 +47,9 @@ const channelColors: Record<string, string> = {
 }
 
 export default function ABTests() {
+  const { getToken } = useAuth()
+  const api = useMemo(() => createApi(getToken), [getToken])
+
   const [tests, setTests] = useState<ABTest[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -56,7 +60,7 @@ export default function ABTests() {
   const loadTests = async () => {
     try {
       const response = await api.get('/ab-tests')
-      setTests(response.data)
+      setTests(response.data.data || response.data || [])
     } catch (error) {
       console.error('Failed to load A/B tests:', error)
       setTests([])
