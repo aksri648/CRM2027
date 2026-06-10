@@ -1,32 +1,66 @@
 import axios from 'axios'
+import { useAuth } from '@clerk/clerk-react'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
+// Create a separate instance for use outside React components
+const createApiWithToken = (getToken: () => Promise<string | null>) => {
+  const instance = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
+    timeout: 30000,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
 
-// Handle auth errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      window.location.href = '/login'
+  instance.interceptors.request.use(async (config) => {
+    try {
+      const token = await getToken()
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    } catch (error) {
+      console.warn('Failed to get Clerk token:', error)
     }
-    return Promise.reject(error)
-  }
-)
+    return config
+  })
 
+  return instance
+}
+
+// Default export - use this in components with useAuth hook
 export default api
+
+// Export factory for use with Clerk's getToken
+export { createApiWithToken }
+
+// Axios instance for non-React contexts (will be configured separately)
+export const createClerkApi = (getToken: () => Promise<string | null>) => {
+  const instance = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1',
+    timeout: 30000,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+  instance.interceptors.request.use(async (config) => {
+    try {
+      const token = await getToken()
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+    } catch (error) {
+      console.warn('Failed to get Clerk token:', error)
+    }
+    return config
+  })
+
+  return instance
+}

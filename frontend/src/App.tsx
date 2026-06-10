@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { ClerkProvider, SignedIn, SignedOut, useUser } from '@clerk/clerk-react'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Customers from './pages/Customers'
@@ -16,16 +17,14 @@ import Settings from './pages/Settings'
 import Layout from './components/Layout'
 import AICommandCentre from './components/AICommandCentre'
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [loading, setLoading] = useState(true)
+// Get Clerk publishable key from environment
+const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_...'
+
+function AppContent() {
   const [isAICommandCentreOpen, setIsAICommandCentreOpen] = useState(false)
+  const { isSignedIn, user } = useUser()
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    setIsAuthenticated(!!token)
-    setLoading(false)
-
     // Listen for AI Command Centre open event
     const handleOpenAICommandCentre = () => {
       setIsAICommandCentreOpen(true)
@@ -34,43 +33,52 @@ function App() {
     return () => window.removeEventListener('open-ai-command-centre', handleOpenAICommandCentre)
   }, [])
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
-  }
-
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={
-          isAuthenticated ? <Navigate to="/" replace /> : <Login setAuth={setIsAuthenticated} />
-        } />
-        
-        <Route path="/" element={
-          isAuthenticated ? <Layout /> : <Navigate to="/login" replace />
-        }>
-          <Route index element={<Dashboard />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="segments" element={<Segments />} />
-          <Route path="campaigns" element={<Campaigns />} />
-          <Route path="campaigns/:id" element={<CampaignDetail />} />
-          <Route path="ai-studio" element={<AIStudio />} />
-          <Route path="opportunities" element={<Opportunities />} />
-          <Route path="proposals" element={<AgentProposals />} />
-          <Route path="ab-tests" element={<ABTests />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="pipeline" element={<PipelineMonitor />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
+    <Routes>
+      <Route path="/login" element={
+        <SignedIn>
+          <Navigate to="/" replace />
+        </SignedIn>
+      } />
+      
+      <Route path="/" element={
+        <SignedIn>
+          <Layout />
+        </SignedIn>
+      }>
+        <Route index element={<Dashboard />} />
+        <Route path="customers" element={<Customers />} />
+        <Route path="segments" element={<Segments />} />
+        <Route path="campaigns" element={<Campaigns />} />
+        <Route path="campaigns/:id" element={<CampaignDetail />} />
+        <Route path="ai-studio" element={<AIStudio />} />
+        <Route path="opportunities" element={<Opportunities />} />
+        <Route path="proposals" element={<AgentProposals />} />
+        <Route path="ab-tests" element={<ABTests />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="pipeline" element={<PipelineMonitor />} />
+        <Route path="settings" element={<Settings />} />
+      </Route>
+    </Routes>
+  )
+}
 
-      {/* AI Command Centre Modal */}
-      {isAuthenticated && (
-        <AICommandCentre 
-          isOpen={isAICommandCentreOpen} 
-          onClose={() => setIsAICommandCentreOpen(false)} 
-        />
-      )}
-    </BrowserRouter>
+function App() {
+  return (
+    <ClerkProvider publishableKey={clerkPublishableKey}>
+      <BrowserRouter>
+        <SignedOut>
+          <Login />
+        </SignedOut>
+        <SignedIn>
+          <AppContent />
+          <AICommandCentre 
+            isOpen={false} 
+            onClose={() => {}} 
+          />
+        </SignedIn>
+      </BrowserRouter>
+    </ClerkProvider>
   )
 }
 

@@ -16,8 +16,9 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    clerk_user_id = Column(String(255), unique=True, nullable=True, index=True)  # Clerk user ID
     email = Column(String(255), unique=True, nullable=False, index=True)
-    hashed_password = Column(String(255), nullable=False)
+    hashed_password = Column(String(255), nullable=True)  # Nullable for Clerk auth
     full_name = Column(String(255), nullable=False)
     role = Column(Enum(UserRole), default=UserRole.MARKETER)
     is_active = Column(Boolean, default=True)
