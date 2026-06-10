@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-sidebar-bg: #0f1923;
+    --color-sidebar-active: #1a2d3d;
+    --color-accent-teal: #0fd4b4;
+    --color-accent-teal-hover: #0bbfa1;
+    --color-main-bg: #f9fafb;
+    --color-card-bg: #ffffff;
+    --color-text-primary: #111827;
+    --color-text-secondary: #6b7280;
+    --color-text-sidebar: #cbd5e1;
+    --color-text-sidebar-active: #ffffff;
+    --color-border: #e5e7eb;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    --color-info: #3b82f6;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-main-bg);
+    color: var(--color-text-primary);
+    font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Sidebar specific styles */
+.sidebar-item {
+  @apply flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200;
+  color: var(--color-text-sidebar);
+}
+
+.sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-item.active {
+  background-color: var(--color-sidebar-active);
+  color: var(--color-text-sidebar-active);
+  border-left: 2px solid var(--color-accent-teal);
+}
+
+/* Badge styles */
+.badge {
+  @apply inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full;
+}
+
+.badge-teal {
+  background-color: rgba(15, 212, 180, 0.15);
+  color: var(--color-accent-teal);
+}
+
+.badge-new {
+  background-color: var(--color-accent-teal);
+  color: white;
+}
+
+.badge-live {
+  background-color: #10b981;
+  color: white;
+}
+
+.badge-live::before {
+  content: '';
+  @apply inline-block w-1.5 h-1.5 bg-white rounded-full mr-1.5 animate-pulse;
+}
+
+/* Channel badges */
+.channel-whatsapp {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.channel-sms {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.channel-email {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.channel-rcs {
+  background-color: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
+/* Status badges */
+.status-draft {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.status-running {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.status-completed {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+/* Card hover effect */
+.card-hover {
+  @apply transition-shadow duration-200;
+}
+
+.card-hover:hover {
+  @apply shadow-md;
+}
+
+/* Gradient cards for dashboard */
+.gradient-teal {
+  background: linear-gradient(135deg, #0fd4b4 0%, #0bbfa1 100%);
+}
+
+.gradient-blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.gradient-purple {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.gradient-green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
