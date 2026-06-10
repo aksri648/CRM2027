@@ -22,7 +22,7 @@ const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || 'pk_te
 
 function AppContent() {
   const [isAICommandCentreOpen, setIsAICommandCentreOpen] = useState(false)
-  const { isSignedIn } = useUser()
+  useUser()
 
   useEffect(() => {
     // Listen for AI Command Centre open event

@@ -141,17 +141,17 @@ export default function AICommandCentre({ isOpen, onClose }: AICommandCentreProp
           <div className="flex items-center gap-2">
             <Cpu size={16} className="text-gray-400" />
             <span className="text-sm text-gray-600">WORKER:</span>
-            <span className="text-sm font-semibold text-green-600">{systemStatus.worker_status}</span>
+            <span className="text-sm font-semibold text-green-600">{systemStatus?.worker_status}</span>
           </div>
           <div className="flex items-center gap-2">
             <HardDrive size={16} className="text-gray-400" />
             <span className="text-sm text-gray-600">QUEUE:</span>
-            <span className="text-sm font-semibold text-gray-900">{systemStatus.queue_depth}</span>
+            <span className="text-sm font-semibold text-gray-900">{systemStatus?.queue_depth}</span>
           </div>
           <div className="flex items-center gap-2">
             <Activity size={16} className="text-gray-400" />
             <span className="text-sm text-gray-600">ACTIVE RUNS:</span>
-            <span className="text-sm font-semibold text-gray-900">{systemStatus.active_runs}</span>
+            <span className="text-sm font-semibold text-gray-900">{systemStatus?.active_runs}</span>
           </div>
         </div>
 

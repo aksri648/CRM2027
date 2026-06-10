@@ -7,6 +7,15 @@ from app.models.user import User
 from app.models.brand import Brand
 from app.api.v1 import api_router
 
+# Initialize OpenTelemetry instrumentation (isolated from business logic)
+# This will not block or modify any existing functionality
+try:
+    from telemetry import init_telemetry
+    telemetry_status = init_telemetry()
+    print(f"Telemetry status: {telemetry_status}")
+except Exception as e:
+    print(f"Telemetry initialization skipped: {e}")
+
 # Create database tables
 Base.metadata.create_all(bind=engine)
 

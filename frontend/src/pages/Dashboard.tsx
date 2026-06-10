@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@clerk/clerk-react'
-import { Users, Target, Send, TrendingUp, Rocket, Layers, BarChart3, Sparkles } from 'lucide-react'
+import { Users, Target, Send, TrendingUp, Rocket, Layers, BarChart3 } from 'lucide-react'
 import { createApi } from '@/api/client'
 
 interface Stats {

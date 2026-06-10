@@ -1,0 +1,106 @@
+# OpenTelemetry Collector Configuration
+# 
+# This configuration receives telemetry data from backend and channelization-microservice
+# and processes/exports it for the telemetry dashboard.
+#
+# Receivers: OTLP over HTTP (4318) and gRPC (4317)
+# Processors: Batch processing for efficiency
+# Exporters: Logging (debug), File (persistence), and prepared for future Prometheus/Loki/Tempo
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "*"
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  # Batch processor for efficient export
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+  
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+  
+  # Filter and transform attributes
+  transform:
+    trace_statements:
+      - context: span
+        statements:
+          - replace_pattern(attributes["http.target"], "\\?.*", "")
+    metric_statements:
+      - context: metric
+        statements:
+          - keep_keys(attributes, "service.name", "service.version", "deployment.environment", "channel", "method", "endpoint", "status_code")
+    log_statements:
+      - context: log
+        statements:
+          - replace_pattern(body, "\\?.*", "")
+
+exporters:
+  # Debug exporter - logs all telemetry (for verification)
+  logging:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 100
+  
+  # File exporter - persists telemetry to disk
+  file:
+    path: ./telemetry_data/telemetry.json
+    rotation:
+      max_megabytes: 100
+      max_files: 10
+    format: json
+  
+  # Prepared for future integrations:
+  
+  # Prometheus (for metrics)
+  # prometheus:
+  #   endpoint: "0.0.0.0:8889"
+  #   resource_to_telemetry_conversion:
+  #     enabled: true
+  
+  # Loki (for logs) - requires loki driver
+  # loki:
+  #   endpoint: "http://loki:3100/loki/api/v1/push"
+  #   labels:
+  #     attributes:
+  #       service.name: service
+  #       deployment.environment: env
+  
+  # Tempo (for traces) - native OTLP
+  # otlp/tempo:
+  #   endpoint: "tempo:4317"
+  #   tls:
+  #     insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, transform]
+      exporters: [logging, file]
+    
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, transform]
+      exporters: [logging, file]
+    
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, transform]
+      exporters: [logging, file]
+  
+  telemetry:
+    logs:
+      level: info
+      development: false

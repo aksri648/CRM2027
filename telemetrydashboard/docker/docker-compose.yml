@@ -1,0 +1,44 @@
+version: '3.8'
+
+# Docker Compose configuration for local development
+# This starts the OTEL collector alongside the telemetry dashboard
+#
+# Usage:
+#   docker compose -f docker/docker-compose.yml up
+#
+# Ports:
+#   - 4317: gRPC OTLP receiver
+#   - 4318: HTTP OTLP receiver  
+#   - 8889: Prometheus metrics endpoint
+#   - 13133: Health check endpoint
+
+services:
+  otel-collector:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.collector
+    container_name: otel-collector
+    restart: unless-stopped
+    ports:
+      - "4317:4317"   # gRPC OTLP
+      - "4318:4318"   # HTTP OTLP
+      - "8889:8889"   # Prometheus metrics
+      - "13133:13133" # Health check
+    volumes:
+      - ../telemetry_data:/home/otel/telemetry_data
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    environment:
+      - OTEL_LOG_LEVEL=INFO
+      - OTEL_SERVICE_NAME=otel-collector
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:13133/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - telemetry
+
+networks:
+  telemetry:
+    driver: bridge

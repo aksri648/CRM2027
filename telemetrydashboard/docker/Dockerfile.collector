@@ -1,0 +1,33 @@
+# OpenTelemetry Collector Dockerfile
+#
+# This Dockerfile builds the OTEL collector for receiving telemetry
+# from the backend and channelization-microservice.
+#
+# Build: docker build -f docker/Dockerfile.collector -t otel-collector .
+# Run:   docker run -p 4317:4317 -p 4318:4318 -p 8889:8889 otel-collector
+
+FROM otel/opentelemetry-collector-contrib:0.99.0 AS base
+
+# Create non-root user for security
+RUN adduser --disabled-password --gecos "" otel && \
+    chown -R otel:otel /etc/otelcol /var/lib/otelcol
+
+USER otel
+
+# Copy custom configuration
+COPY --chown=otel:otel collector/otel-collector-config.yaml /etc/otelcol/config.yaml
+
+# Create directory for file exporter output
+RUN mkdir -p /home/otel/telemetry_data && chown otel:otel /home/otel/telemetry_data
+
+WORKDIR /home/otel
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:13133/health || exit 1
+
+EXPOSE 4317 4318 8889 13133
+
+# Run the collector with the custom config
+ENTRYPOINT ["otelcol-contrib"]
+CMD ["--config=/etc/otelcol/config.yaml"]
