@@ -6,11 +6,17 @@ from typing import Optional, List, Dict, Any
 
 class AIService:
     def __init__(self):
-        self.client = OpenAI(
-            base_url=settings.KIMCHI_BASE_URL,
-            api_key=settings.KIMCHI_API_KEY
-        )
+        self._client = None
         self.model = settings.AI_MODEL
+
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = OpenAI(
+                base_url=settings.KIMCHI_BASE_URL,
+                api_key=settings.KIMCHI_API_KEY
+            )
+        return self._client
     
     def chat(self, message: str, context: Optional[Dict[str, Any]] = None) -> str:
         """Natural language chat interface"""
