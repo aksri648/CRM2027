@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import asyncio
+import os
 
 from .telemetry import (
     tracer, meter, log_storage, metric_storage,
@@ -11,6 +13,10 @@ from .telemetry import (
 )
 
 app = FastAPI(title="Telemetry Dashboard", version="1.0.0")
+
+frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.isdir(frontend_dist):
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
 # CORS
 app.add_middleware(

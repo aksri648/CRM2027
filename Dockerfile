@@ -1,3 +1,10 @@
+FROM node:20-slim AS frontend-builder
+WORKDIR /build
+COPY telemetrydashboard/frontend/package.json telemetrydashboard/frontend/package-lock.json* ./
+RUN npm ci
+COPY telemetrydashboard/frontend/ ./
+RUN npm run build
+
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -10,6 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY telemetrydashboard/app/ ./app/
 COPY telemetrydashboard/collector/ ./collector/
+COPY --from=frontend-builder /build/dist/ ./frontend/dist/
 
 EXPOSE 8002
 
