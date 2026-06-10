@@ -14,8 +14,14 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
-from opentelemetry.instrumentation.runtime import RuntimeInstrumentor
-from opentelemetry.instrumentation.psutil import PsutilInstrumentor
+try:
+    from opentelemetry.instrumentation.runtime import RuntimeInstrumentor
+except ImportError:
+    RuntimeInstrumentor = None
+try:
+    from opentelemetry.instrumentation.psutil import PsutilInstrumentor
+except ImportError:
+    PsutilInstrumentor = None
 
 from .config import TelemetryConfig
 
@@ -79,18 +85,24 @@ def setup_metrics(resource: Resource, config: TelemetryConfig) -> MeterProvider:
     _meter = metrics.get_meter(config.service_name)
     
     # Auto-instrument runtime metrics
-    try:
-        RuntimeInstrumentor().instrument()
-        logger.info("Runtime instrumentation enabled")
-    except Exception as e:
-        logger.warning(f"Failed to instrument runtime metrics: {e}")
+    if RuntimeInstrumentor is not None:
+        try:
+            RuntimeInstrumentor().instrument()
+            logger.info("Runtime instrumentation enabled")
+        except Exception as e:
+            logger.warning(f"Failed to instrument runtime metrics: {e}")
+    else:
+        logger.info("Runtime instrumentation not available (opentelemetry-instrumentation-runtime not installed)")
     
     # Auto-instrument psutil for process metrics
-    try:
-        PsutilInstrumentor().instrument()
-        logger.info("Process instrumentation enabled")
-    except Exception as e:
-        logger.warning(f"Failed to instrument process metrics: {e}")
+    if PsutilInstrumentor is not None:
+        try:
+            PsutilInstrumentor().instrument()
+            logger.info("Process instrumentation enabled")
+        except Exception as e:
+            logger.warning(f"Failed to instrument process metrics: {e}")
+    else:
+        logger.info("Process instrumentation not available (opentelemetry-instrumentation-psutil not installed)")
     
     return meter_provider
 

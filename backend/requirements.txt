@@ -23,7 +23,5 @@ opentelemetry-exporter-otlp>=1.22.0
 opentelemetry-instrumentation-fastapi>=0.43b0
 opentelemetry-instrumentation-httpx>=0.43b0
 opentelemetry-instrumentation-logging>=0.43b0
-opentelemetry-instrumentation-runtime>=0.43b0
-opentelemetry-instrumentation-psutil>=0.43b0
 opentelemetry-semantic-conventions>=0.43b0
 psutil>=5.9.0
