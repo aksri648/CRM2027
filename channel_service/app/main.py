@@ -8,16 +8,16 @@ import random
 import uuid
 import httpx
 
-# Initialize OpenTelemetry instrumentation (isolated from business logic)
-# This will not block or modify any existing functionality
+app = FastAPI(title="Xeno Channel Service", version="1.0.0")
+
+# Initialize OpenTelemetry instrumentation (isolated from business logic).
+# Must run after `app` is created so FastAPI auto-instrumentation can attach.
 try:
     from telemetry import init_telemetry
-    telemetry_status = init_telemetry()
+    telemetry_status = init_telemetry(app)
     print(f"Telemetry status: {telemetry_status}")
 except Exception as e:
     print(f"Telemetry initialization skipped: {e}")
-
-app = FastAPI(title="Xeno Channel Service", version="1.0.0")
 
 # API key for callback authentication - should be set via environment variable
 CHANNEL_SERVICE_API_KEY = getenv("CHANNEL_SERVICE_API_KEY", "change-me-in-production")

@@ -18,4 +18,10 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    // Render serves the built app via `vite preview`, which rejects unknown
+    // Host headers by default. Allow the Render hostname (and any *.onrender.com
+    // subdomain so renames or PR previews keep working).
+    allowedHosts: ['xeno-crm-2027-frontend.onrender.com', '.onrender.com'],
+  },
 })

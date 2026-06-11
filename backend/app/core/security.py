@@ -185,15 +185,13 @@ async def get_current_user_from_clerk(
 
 # Keep old functions for backwards compatibility during migration
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    return pwd_context.verify(plain_password, hashed_password)
+    import bcrypt
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
 def get_password_hash(password: str) -> str:
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    return pwd_context.hash(password)
+    import bcrypt
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

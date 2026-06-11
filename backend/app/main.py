@@ -7,15 +7,6 @@ from app.models.user import User
 from app.models.brand import Brand
 from app.api.v1 import api_router
 
-# Initialize OpenTelemetry instrumentation (isolated from business logic)
-# This will not block or modify any existing functionality
-try:
-    from telemetry import init_telemetry
-    telemetry_status = init_telemetry()
-    print(f"Telemetry status: {telemetry_status}")
-except Exception as e:
-    print(f"Telemetry initialization skipped: {e}")
-
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
@@ -49,6 +40,15 @@ app = FastAPI(
     docs_url=f"{settings.API_V1_PREFIX}/docs",
     redoc_url=f"{settings.API_V1_PREFIX}/redoc"
 )
+
+# Initialize OpenTelemetry instrumentation (isolated from business logic).
+# Must run after `app` is created so FastAPI auto-instrumentation can attach.
+try:
+    from telemetry import init_telemetry
+    telemetry_status = init_telemetry(app)
+    print(f"Telemetry status: {telemetry_status}")
+except Exception as e:
+    print(f"Telemetry initialization skipped: {e}")
 
 # CORS middleware - use specific origins instead of "*" when credentials are enabled
 app.add_middleware(
